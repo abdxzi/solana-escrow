@@ -1,7 +1,7 @@
 import * as anchor from "@coral-xyz/anchor";
 import { Program } from "@coral-xyz/anchor";
 import * as borsh from "@coral-xyz/borsh";
-import { SolanaEscrow} from "../target/types/solana_escrow";
+import { SolanaEscrow } from "../target/types/solana_escrow";
 import assert from "assert";
 
 describe("solana-escrow", () => {
@@ -11,11 +11,11 @@ describe("solana-escrow", () => {
   const program = anchor.workspace.SolanaEscrow as Program<SolanaEscrow>;
 
   const client = anchor.web3.Keypair.generate();
+  console.log('CLIENT: ', client.publicKey.toString())
   let escrowAccount: anchor.web3.Keypair;
   let serviceProvider: anchor.web3.Keypair;
 
   before(async () => {
-    console.log('CLIENT: ', client.publicKey)
     await airdrop(provider.connection, client.publicKey, 2 * anchor.web3.LAMPORTS_PER_SOL);
     const balance = await provider.connection.getBalance(client.publicKey);
     assert(balance >= 2 * anchor.web3.LAMPORTS_PER_SOL, "Airdrop failed");
@@ -35,18 +35,19 @@ describe("solana-escrow", () => {
       .signers([client, escrowAccount])
       .rpc();
 
-    const escrowAccountInfo = await provider.connection.getAccountInfo(escrowAccount.publicKey);
-    const escrowAccountData = EscrowAccountSchema.decode(escrowAccountInfo.data)
+    const escrowAccountData = await getEscrowAccountData(provider.connection, escrowAccount);
 
     assert(escrowAccountData.client.toString() == client.publicKey.toString(), "Escrow `client` is set wrong")
     assert(escrowAccountData.amount.toNumber() == amount, "Escrow `amount` is set wrong")
 
-    // console.log('Escrow Account initialised: ', data);
+    // console.log('Escrow Account initialised: ', escrowAccountData);
   });
 
   it("Service provider accepts the service", async () => {
 
     serviceProvider = anchor.web3.Keypair.generate();
+
+    console.log('SERVICE PROVIDER: ', serviceProvider.publicKey.toString())
 
     await program.methods
       .acceptService()
@@ -57,11 +58,38 @@ describe("solana-escrow", () => {
       .signers([serviceProvider])
       .rpc();
 
-    const escrowAccountInfo = await provider.connection.getAccountInfo(escrowAccount.publicKey);
-    const escrowAccountData = EscrowAccountSchema.decode(escrowAccountInfo.data)
+    const escrowAccountData = await getEscrowAccountData(provider.connection, escrowAccount);
 
     assert(escrowAccountData.service_provider.toString() == serviceProvider.publicKey.toString(), "Escrow `service_provider` is set wrong")
-  
+  })
+
+  it("Service Provider approves competion", async () => {
+    await program.methods
+      .approveCompletion() 
+      .accounts({
+        escrow: escrowAccount.publicKey,
+        signer: serviceProvider.publicKey,
+      })
+      .signers([serviceProvider])
+      .rpc();
+
+      const escrowAccountData = await getEscrowAccountData(provider.connection, escrowAccount);
+      assert(escrowAccountData.provider_approved, "Service provider did not approve completion")
+  })
+
+  it("Client approves, Transfers SOL, complete escrow", async () => {
+    await program.methods
+      .approveCompletion() 
+      .accounts({
+        escrow: escrowAccount.publicKey,
+        signer: client.publicKey,
+      })
+      .signers([client])
+      .rpc();
+
+      const escrowAccountData = await getEscrowAccountData(provider.connection, escrowAccount);
+      assert(escrowAccountData.is_completed, "Escrow should complete")
+      assert(escrowAccountData.client_approved, "Client approval should complete")
   })
 });
 
@@ -84,3 +112,9 @@ const EscrowAccountSchema = borsh.struct([
   borsh.bool('provider_approved'),
   borsh.bool('is_completed'),
 ]);
+
+async function getEscrowAccountData(connection: any, escrowAccount: any) {
+  const escrowAccountInfo = await connection.getAccountInfo(escrowAccount.publicKey);
+  const escrowAccountData = EscrowAccountSchema.decode(escrowAccountInfo.data)
+  return escrowAccountData;
+}
