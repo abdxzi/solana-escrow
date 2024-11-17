@@ -12,6 +12,7 @@ describe("solana-escrow", () => {
 
   const client = anchor.web3.Keypair.generate();
   let escrowAccount: anchor.web3.Keypair;
+  let serviceProvider: anchor.web3.Keypair;
 
   before(async () => {
     console.log('CLIENT: ', client.publicKey)
@@ -20,7 +21,7 @@ describe("solana-escrow", () => {
     assert(balance >= 2 * anchor.web3.LAMPORTS_PER_SOL, "Airdrop failed");
   });
 
-  it("Is initialized!", async () => {
+  it("Escrow initialized!", async () => {
 
     escrowAccount = anchor.web3.Keypair.generate();
     const amount = 1 * anchor.web3.LAMPORTS_PER_SOL; // 1 SOL
@@ -34,23 +35,14 @@ describe("solana-escrow", () => {
       .signers([client, escrowAccount])
       .rpc();
 
-    const escrowAccountData = await program.account.escrowAccount.fetch(
-      escrowAccount.publicKey
-    );
-
-
-
     const accountInfo = await provider.connection.getAccountInfo(escrowAccount.publicKey);
-
-    // // Check the escrow state
-    // console.log("Initializer:", escrowAccountData.initializer.toBase58());
-    // console.log("Amount:", escrowAccountData.amount);
-    console.log("Accountinfo length:", accountInfo.data.length);
-
     const data = EscrowAccountSchema.decode(accountInfo.data)
-    console.log(data)
 
-  });
+    assert(data.client.toString() == client.publicKey.toString(), "Escrow `client` is set wrong")
+    assert(data.amount.toNumber() == amount, "Escrow `amount` is set wrong")
+
+    // console.log('Escrow Account initialised: ', data);
+  });   
 });
 
 
