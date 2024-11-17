@@ -1,10 +1,8 @@
 import * as anchor from "@coral-xyz/anchor";
 import { Program } from "@coral-xyz/anchor";
+import * as borsh from "@coral-xyz/borsh";
 import { SolanaEscrow } from "../target/types/solana_escrow";
 import assert from "assert";
-
-import { struct, u8, Layout } from "@solana/buffer-layout";
-import { publicKey, u64 } from "@solana/buffer-layout-utils";
 
 describe("solana-escrow", () => {
   const provider = anchor.AnchorProvider.env();
@@ -16,6 +14,7 @@ describe("solana-escrow", () => {
   let escrowAccount: anchor.web3.Keypair;
 
   before(async () => {
+    console.log('CLIENT: ', client.publicKey)
     await airdrop(provider.connection, client.publicKey, 2 * anchor.web3.LAMPORTS_PER_SOL);
     const balance = await provider.connection.getBalance(client.publicKey);
     assert(balance >= 2 * anchor.web3.LAMPORTS_PER_SOL, "Airdrop failed");
@@ -46,7 +45,11 @@ describe("solana-escrow", () => {
     // // Check the escrow state
     // console.log("Initializer:", escrowAccountData.initializer.toBase58());
     // console.log("Amount:", escrowAccountData.amount);
-    console.log("Accountinfo:", accountInfo.data);
+    console.log("Accountinfo length:", accountInfo.data.length);
+
+    const data = EscrowAccountSchema.decode(accountInfo.data)
+    console.log(data)
+
   });
 });
 
@@ -59,3 +62,13 @@ async function airdrop(connection: any, address: any, amount = 1000000000) {
   await connection.confirmTransaction(await connection.requestAirdrop(address, amount), "confirmed");
 }
 
+// Define the schema for decoding
+const EscrowAccountSchema = borsh.struct([
+  borsh.array(borsh.u8(), 8, 'discriminator'), // Skip the first 8 bytes
+  borsh.publicKey('client'),              // Public key for client
+  borsh.publicKey('service_provider'),    // Public key for service provider
+  borsh.u64('amount'),                    // u64 in Little-Endian format
+  borsh.bool('client_approved'),          // Boolean fields
+  borsh.bool('provider_approved'),
+  borsh.bool('is_completed'),
+]);
