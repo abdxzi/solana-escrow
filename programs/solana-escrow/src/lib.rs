@@ -6,7 +6,7 @@ use anchor_lang::solana_program::program::invoke;
 declare_id!("B3G5V8XLTyXVpM8txNJgdezuCJZrVq4y4zD1aVzezEvw");
 
 #[program]
-pub mod escrow {
+pub mod solana_escrow {
     use super::*;
 
     // Initialize the escrow account with a specified amount

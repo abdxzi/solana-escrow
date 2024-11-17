@@ -1,7 +1,7 @@
 import * as anchor from "@coral-xyz/anchor";
 import { Program } from "@coral-xyz/anchor";
 import * as borsh from "@coral-xyz/borsh";
-import { SolanaEscrow } from "../target/types/solana_escrow";
+import { SolanaEscrow} from "../target/types/solana_escrow";
 import assert from "assert";
 
 describe("solana-escrow", () => {
@@ -21,7 +21,7 @@ describe("solana-escrow", () => {
     assert(balance >= 2 * anchor.web3.LAMPORTS_PER_SOL, "Airdrop failed");
   });
 
-  it("Escrow initialized!", async () => {
+  it("Escrow initialized by client", async () => {
 
     escrowAccount = anchor.web3.Keypair.generate();
     const amount = 1 * anchor.web3.LAMPORTS_PER_SOL; // 1 SOL
@@ -29,20 +29,40 @@ describe("solana-escrow", () => {
     await program.methods
       .initializeEscrow(new anchor.BN(amount))
       .accounts({
-        escrowAccount: escrowAccount.publicKey,
-        initializer: client.publicKey,
+        escrow: escrowAccount.publicKey,
+        client: client.publicKey,
       })
       .signers([client, escrowAccount])
       .rpc();
 
-    const accountInfo = await provider.connection.getAccountInfo(escrowAccount.publicKey);
-    const data = EscrowAccountSchema.decode(accountInfo.data)
+    const escrowAccountInfo = await provider.connection.getAccountInfo(escrowAccount.publicKey);
+    const escrowAccountData = EscrowAccountSchema.decode(escrowAccountInfo.data)
 
-    assert(data.client.toString() == client.publicKey.toString(), "Escrow `client` is set wrong")
-    assert(data.amount.toNumber() == amount, "Escrow `amount` is set wrong")
+    assert(escrowAccountData.client.toString() == client.publicKey.toString(), "Escrow `client` is set wrong")
+    assert(escrowAccountData.amount.toNumber() == amount, "Escrow `amount` is set wrong")
 
     // console.log('Escrow Account initialised: ', data);
-  });   
+  });
+
+  it("Service provider accepts the service", async () => {
+
+    serviceProvider = anchor.web3.Keypair.generate();
+
+    await program.methods
+      .acceptService()
+      .accounts({
+        escrow: escrowAccount.publicKey,
+        serviceProvider: serviceProvider.publicKey,
+      })
+      .signers([serviceProvider])
+      .rpc();
+
+    const escrowAccountInfo = await provider.connection.getAccountInfo(escrowAccount.publicKey);
+    const escrowAccountData = EscrowAccountSchema.decode(escrowAccountInfo.data)
+
+    assert(escrowAccountData.service_provider.toString() == serviceProvider.publicKey.toString(), "Escrow `service_provider` is set wrong")
+  
+  })
 });
 
 
