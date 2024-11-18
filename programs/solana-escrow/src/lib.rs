@@ -1,30 +1,36 @@
 use anchor_lang::prelude::*;
 use anchor_lang::solana_program::program::invoke;
 use anchor_lang::solana_program::system_instruction;
+use std::mem::size_of;
 
-// Declare the contract's ID
 declare_id!("B3G5V8XLTyXVpM8txNJgdezuCJZrVq4y4zD1aVzezEvw");
+
+pub const ESCROW_SEED: &[u8] = b"solanatestescrow";
 
 #[program]
 pub mod solana_escrow {
+
     use super::*;
 
     // Initialize the escrow account with a specified amount
     pub fn initialize_escrow(ctx: Context<InitializeEscrow>, amount: u64) -> Result<()> {
-        let escrow = &mut ctx.accounts.escrow;
         let client = &ctx.accounts.client;
+        let escrow = &mut ctx.accounts.escrow;
 
-        // Check that the client has enough SOL to fund the escrow
+        // Checks
         require!(
             client.to_account_info().lamports() >= amount,
             EscrowError::InsufficientBalance
         );
 
-        // Ensure amount is greater than zero
         require!(amount > 0, EscrowError::InvalidAmount);
 
-        escrow.client = client.key();
-        escrow.service_provider = Pubkey::default(); // No service provider initially
+        let (_pda, bump) =
+            Pubkey::find_program_address(&[ESCROW_SEED, client.key().as_ref()], ctx.program_id);
+
+        escrow.bump = bump;
+        escrow.client = ctx.accounts.client.key();
+        escrow.service_provider = Pubkey::default();
         escrow.amount = amount;
         escrow.client_approved = false;
         escrow.is_completed = false;
@@ -39,85 +45,75 @@ pub mod solana_escrow {
             ],
         )?;
 
-        // Emit an event that the escrow was initialized
-        emit!(EscrowInitialized {
-            escrow: escrow.key(),
-            client: escrow.client,
-            amount: escrow.amount,
-        });
-
         Ok(())
     }
 
-    // Accept a service provider for the escrow
-    pub fn accept_service(ctx: Context<AcceptService>) -> Result<()> {
-        let escrow = &mut ctx.accounts.escrow;
-        let service_provider = &ctx.accounts.service_provider;
-
-        // Ensure the escrow doesn't already have a service provider
-        require!(
-            escrow.service_provider == Pubkey::default(),
-            EscrowError::ServiceAlreadyAccepted
-        );
-
-        // Set the service provider
-        escrow.service_provider = service_provider.key();
-
-        Ok(())
-    }
-
-    // Approve the completion of the escrow by either client or service provider
-    pub fn approve_completion(ctx: Context<ApproveCompletion>) -> Result<()> {
-        let escrow: &mut Account<'_, EscrowAccount> = &mut ctx.accounts.escrow;
-        let signer_key = ctx.accounts.client.key();
-
-        require!(
-            escrow.service_provider != Pubkey::default(),
-            EscrowError::UninitializedEscrow
-        );
-
-        require!(signer_key == escrow.client, EscrowError::UnauthorizedSigner);
-        
-        escrow.client_approved = true;
-
-        Ok(())
-    }
-
-    // Release the funds to the service provider
     pub fn release_fund(ctx: Context<ReleaseFund>) -> Result<()> {
-        let escrow = &mut ctx.accounts.escrow;
-        let service_provider = ctx.accounts.service_provider.key();
+        let escrow = &ctx.accounts.escrow;
+        // let service_provider = ctx.accounts.service_provider.to_account_info();
 
-        require!(escrow.service_provider != Pubkey::default(), EscrowError::UninitializedEscrow);
-        require!(service_provider == escrow.service_provider, EscrowError::UnauthorizedSigner);
-        require!(escrow.client_approved, EscrowError::NotApprovedForRealease); 
-        require!(!escrow.is_completed, EscrowError::EscrowAlreadyCompleted); 
+        // @note - Below two methods of transafer wont work because our ecrow account have data with it.
 
-        escrow.is_completed = true;
+        // let ix = system_instruction::transfer(
+        //     &escrow.key(),
+        //     &service_provider.key(),
+        //     ctx.accounts.escrow.amount,
+        // );
 
-        // Transfer the escrow amount to the service provider
-        invoke(
-            &system_instruction::transfer(
-                &escrow.to_account_info().key(),
-                &escrow.service_provider,
-                escrow.amount,
-            ),
-            &[
-                escrow.to_account_info(),
-                ctx.accounts.service_provider.to_account_info(),
-                ctx.accounts.system_program.to_account_info(),
-            ],
-        )?;
+        // invoke_signed(
+        //     &ix,
+        //     &[
+        //         ctx.accounts.escrow.to_account_info(),
+        //         ctx.accounts.service_provider.to_account_info(),
+        //         ctx.accounts.system_program.to_account_info(),
+        //     ],
+        //     &[&[ESCROW_SEED, ctx.accounts.escrow.client.key().as_ref(), &[ctx.accounts.escrow.bump]]],
+        // )?;
 
-        emit!(EscrowCompleted {
-            escrow: escrow.key(),
-            service_provider: escrow.service_provider,
-            amount: escrow.amount,
-        });
+        // let client_key = escrow.client.key();
+        // let signer_seeds: &[&[&[u8]]] =
+        //     &[&[ESCROW_SEED.as_ref(), client_key.as_ref(), &[escrow.bump]]];
+
+        // let cpi_context = CpiContext::new_with_signer(
+        //     ctx.accounts.system_program.to_account_info(),
+        //     Transfer {
+        //         from: escrow.to_account_info(),
+        //         to: service_provider.to_account_info(),
+        //     },
+        //     signer_seeds,
+        // );
+
+        // transfer(cpi_context, escrow.amount)?;
+
+        // let transfer_amount = escrow.amount;
+
+        // @note - Same as below
+
+        // **ctx
+        //     .accounts
+        //     .service_provider
+        //     .to_account_info()
+        //     .try_borrow_mut_lamports()? += transfer_amount;
+        // **ctx
+        //     .accounts
+        //     .escrow
+        //     .to_account_info()
+        //     .try_borrow_mut_lamports()? -= transfer_amount;
+
+        // Sent lamports except rent fee else it will destroy account
+        let lamports = escrow.get_lamports();
+        let rent_exempt_balance = Rent::get()?.minimum_balance(size_of::<EscrowAccount>() + 20);
+        let remaining_lamports = lamports.saturating_sub(rent_exempt_balance);
+        if remaining_lamports > 0 {
+            ctx.accounts.escrow.sub_lamports(remaining_lamports)?;
+            ctx.accounts.service_provider.add_lamports(remaining_lamports)?;
+        } else {
+            return Err(EscrowError::InsufficientBalance)?;
+        }
+
 
         Ok(())
     }
-
 }
 
 // Account structures
@@ -125,33 +121,27 @@ pub mod solana_escrow {
 pub struct InitializeEscrow<'info> {
     #[account(
         init,
-        payer = client, // The client pays for the transaction, but it's not a program account.
-        space = 8 + 32 + 32 + 8 + 1 + 1 + 1 // Allocate enough space for the EscrowAccount struct
+        payer = client,
+        // space = 8 + 32 + 32 + 8 + 1 + 1, 
+        space = size_of::<EscrowAccount>() + 16, // +16 for internal overhead
+        seeds = [b"solanatestescrow", client.key().as_ref()],
+        bump
     )]
-    pub escrow: Account<'info, EscrowAccount>, // The escrow account gets initialized here
-    #[account(mut)]
-    pub client: Signer<'info>, // The client must sign the transaction
-    pub system_program: Program<'info, System>, // System program is required to create the new account
-}
-
-#[derive(Accounts)]
-pub struct AcceptService<'info> {
-    #[account(mut)]
     pub escrow: Account<'info, EscrowAccount>,
-    pub service_provider: Signer<'info>,
-}
 
-#[derive(Accounts)]
-pub struct ApproveCompletion<'info> {
     #[account(mut)]
-    pub escrow: Account<'info, EscrowAccount>,
     pub client: Signer<'info>,
+
+    pub system_program: Program<'info, System>,
 }
 
 #[derive(Accounts)]
 pub struct ReleaseFund<'info> {
+    // #[account(mut, close = service_provider)] // @note - if this on function cal will destroy account and send all sol to service_provider
     #[account(mut)]
     pub escrow: Account<'info, EscrowAccount>,
+
+    #[account(mut)]
     pub service_provider: Signer<'info>,
     pub system_program: Program<'info, System>,
 }
@@ -164,9 +154,9 @@ pub struct EscrowAccount {
     pub amount: u64,
     pub client_approved: bool,
     pub is_completed: bool,
+    pub bump: u8,
 }
 
-// Define errors to handle edge cases and improve clarity
 #[error_code]
 pub enum EscrowError {
     #[msg("Service has already been accepted by another provider")]
@@ -183,19 +173,4 @@ pub enum EscrowError {
     NotApprovedForRealease,
     #[msg("Escrow already completed")]
     EscrowAlreadyCompleted,
-}
-
-// Events to track important actions
-#[event]
-pub struct EscrowInitialized {
-    pub escrow: Pubkey,
-    pub client: Pubkey,
-    pub amount: u64,
-}
-
-#[event]
-pub struct EscrowCompleted {
-    pub escrow: Pubkey,
-    pub service_provider: Pubkey,
-    pub amount: u64,
 }
