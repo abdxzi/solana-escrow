@@ -45,11 +45,63 @@ pub mod solana_escrow {
             ],
         )?;
 
+        // Emit the initialization event
+        emit!(EscrowInitialized {
+            escrow: escrow.key(),
+            client: client.key(),
+            amount,
+        });
+
+        Ok(())
+    }
+
+    // Accept a service provider for the escrow
+    pub fn accept_service(ctx: Context<AcceptService>) -> Result<()> {
+        let escrow = &mut ctx.accounts.escrow;
+        let service_provider = &ctx.accounts.service_provider;
+
+        // Ensure the escrow doesn't already have a service provider
+        require!(
+            escrow.service_provider == Pubkey::default(),
+            EscrowError::ServiceAlreadyAccepted
+        );
+
+        // Set the service provider
+        escrow.service_provider = service_provider.key();
+
+        Ok(())
+    }
+
+    // Approve the completion of the escrow by either client or service provider
+    pub fn approve_completion(ctx: Context<ApproveCompletion>) -> Result<()> {
+        let escrow: &mut Account<'_, EscrowAccount> = &mut ctx.accounts.escrow;
+        let signer_key = ctx.accounts.client.key();
+
+        require!(
+            escrow.service_provider != Pubkey::default(),
+            EscrowError::UninitializedEscrow
+        );
+
+        require!(signer_key == escrow.client, EscrowError::UnauthorizedSigner);
+
+        escrow.client_approved = true;
+
         Ok(())
     }
 
     pub fn release_fund(ctx: Context<ReleaseFund>) -> Result<()> {
-        let escrow = &ctx.accounts.escrow;
+        let escrow = &mut ctx.accounts.escrow;
+        let service_provider = &ctx.accounts.service_provider;
+
+        require!(
+            service_provider.key() == escrow.service_provider,
+            EscrowError::UnauthorizedSigner
+        );
+
+        require!(escrow.client_approved, EscrowError::NotApprovedForRealease);
+        require!(!escrow.is_completed, EscrowError::EscrowAlreadyCompleted);
+
+        escrow.is_completed = true;
         // let service_provider = ctx.accounts.service_provider.to_account_info();
 
         // @note - Below two methods of transafer wont work because our ecrow account have data with it.
@@ -106,11 +158,12 @@ pub mod solana_escrow {
         let remaining_lamports = lamports.saturating_sub(rent_exempt_balance);
         if remaining_lamports > 0 {
             ctx.accounts.escrow.sub_lamports(remaining_lamports)?;
-            ctx.accounts.service_provider.add_lamports(remaining_lamports)?;
+            ctx.accounts
+                .service_provider
+                .add_lamports(remaining_lamports)?;
         } else {
             return Err(EscrowError::InsufficientBalance)?;
         }
-
 
         Ok(())
     }
@@ -133,6 +186,20 @@ pub struct InitializeEscrow<'info> {
     pub client: Signer<'info>,
 
     pub system_program: Program<'info, System>,
+}
+
+#[derive(Accounts)]
+pub struct AcceptService<'info> {
+    #[account(mut)]
+    pub escrow: Account<'info, EscrowAccount>,
+    pub service_provider: Signer<'info>,
+}
+
+#[derive(Accounts)]
+pub struct ApproveCompletion<'info> {
+    #[account(mut)]
+    pub escrow: Account<'info, EscrowAccount>,
+    pub client: Signer<'info>,
 }
 
 #[derive(Accounts)]
@@ -173,4 +240,19 @@ pub enum EscrowError {
     NotApprovedForRealease,
     #[msg("Escrow already completed")]
     EscrowAlreadyCompleted,
+}
+
+// Events to track important actions
+#[event]
+pub struct EscrowInitialized {
+    pub escrow: Pubkey,
+    pub client: Pubkey,
+    pub amount: u64,
+}
+
+#[event]
+pub struct EscrowCompleted {
+    pub escrow: Pubkey,
+    pub service_provider: Pubkey,
+    pub amount: u64,
 }

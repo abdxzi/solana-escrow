@@ -23,3 +23,28 @@ The client deposits a certain amount of SOL into the escrow account.
     - The funds are transferred from the escrow account to the service provider’s wallet.
     - The contract marks the escrow as completed.
 
+
+# Deployment
+
+```bash
+anchor build
+solana program deploy target/deploy/<program-name>.so
+solana program show <PROGRAM_ID>
+```
+add program id to anchor.toml
+```toml
+[programs.devnet]
+<program-name> = "<new_program_id>"
+```
+Switch to the devnet in your Anchor.toml file:
+```
+cluster = "devnet"
+```
+```bash
+anchor test --provider.cluster devnet
+```
+
+interact:
+```bash
+solana program invoke --program-id <PROGRAM_ID> --keypair ~/.config/solana/id.json
+```
