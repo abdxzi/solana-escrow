@@ -7,6 +7,9 @@ skip-lint = false
 [programs.localnet]
 solana_escrow = "B3G5V8XLTyXVpM8txNJgdezuCJZrVq4y4zD1aVzezEvw"
 
+[programs.devnet]
+solana_escrow = "B3G5V8XLTyXVpM8txNJgdezuCJZrVq4y4zD1aVzezEvw"
+
 [registry]
 url = "https://api.apr.dev"
 
