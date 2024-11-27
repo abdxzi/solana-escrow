@@ -71,9 +71,9 @@ describe("solana-escrow", () => {
     assert(escrowAccountData.service_provider.toString() == serviceProvider.publicKey.toString(), "Escrow `service_provider` is set wrong")
   })
 
-    it("Client approves escrow after recieving service", async () => {
+  it("Client approves escrow after recieving service", async () => {
     await program.methods
-      .approveCompletion() 
+      .approveCompletion()
       .accounts({
         escrow: escrowAddress,
         client: client.publicKey,
@@ -81,15 +81,15 @@ describe("solana-escrow", () => {
       .signers([client])
       .rpc();
 
-      const escrowAccountData = await getEscrowAccountData(provider.connection, escrowAddress);
-      assert(escrowAccountData.client_approved, "Client approval should complete")
-      
+    const escrowAccountData = await getEscrowAccountData(provider.connection, escrowAddress);
+    assert(escrowAccountData.client_approved, "Client approval should complete")
+
   })
 
   it("Release the fund", async () => {
 
     console.log('Service provider Balance before: ', await getSOLBalance(provider.connection, serviceProvider.publicKey))
-    
+
     const solBalanceBefore = await getSOLBalance(provider.connection, escrowAddress)
 
     await program.methods
@@ -100,6 +100,8 @@ describe("solana-escrow", () => {
       })
       .signers([serviceProvider])
       .rpc();
+
+    console.log('Service provider Balance After: ', await getSOLBalance(provider.connection, serviceProvider.publicKey))
 
     // const escrowAccountInfo = await provider.connection.getAccountInfo(escrowAddress);
     // const rentExemptBalance = await provider.connection.getMinimumBalanceForRentExemption((escrowAccountInfo as any).space);

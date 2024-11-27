@@ -3,7 +3,7 @@ use anchor_lang::solana_program::program::invoke;
 use anchor_lang::solana_program::system_instruction;
 use std::mem::size_of;
 
-declare_id!("B3G5V8XLTyXVpM8txNJgdezuCJZrVq4y4zD1aVzezEvw");
+declare_id!("CEZfy7bnWycn3yshBUDcu8eLdhtPgtyqUtS86ZAreVXL");
 
 pub const ESCROW_SEED: &[u8] = b"solanatestescrow";
 
