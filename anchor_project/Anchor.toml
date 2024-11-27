@@ -5,17 +5,17 @@ resolution = true
 skip-lint = false
 
 [programs.devnet]
-solana_escrow = "2am6BvNauwFQZ9ix2Hh4s7wPXP2vhuUdKqRszy8ffrtk"
+solana_escrow = "3SgbiXdLJ81n1r5HR42fbHGWfQM3Djds6kfyYPeNQUKs"
 
 [programs.localnet]
-solana_escrow = "B3G5V8XLTyXVpM8txNJgdezuCJZrVq4y4zD1aVzezEvw"
+solana_escrow = "3SgbiXdLJ81n1r5HR42fbHGWfQM3Djds6kfyYPeNQUKs"
 
 [registry]
 url = "https://api.apr.dev"
 
 [provider]
-cluster = "Devnet"
-wallet = "./id.json"
+cluster = "https://api.devnet.solana.com"
+wallet = "~/.config/solana/devnet.json"
 
 [scripts]
 test = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 tests/**/*.ts"

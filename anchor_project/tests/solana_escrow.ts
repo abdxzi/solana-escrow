@@ -20,7 +20,7 @@ describe("solana-escrow", () => {
     client = anchor.web3.Keypair.generate();
     serviceProvider = anchor.web3.Keypair.generate();
 
-    const programId = new anchor.web3.PublicKey("B3G5V8XLTyXVpM8txNJgdezuCJZrVq4y4zD1aVzezEvw");
+    const programId = new anchor.web3.PublicKey("3SgbiXdLJ81n1r5HR42fbHGWfQM3Djds6kfyYPeNQUKs");
     [escrowAddress, bump] = await anchor.web3.PublicKey.findProgramAddress(
       [Buffer.from("solanatestescrow"), client.publicKey.toBuffer()],
       programId

@@ -100,7 +100,7 @@ There was a problem deploying: Output { status: ExitStatus(unix_wait_status(256)
 ```bash
 solana-keygen recover -o buffer-keypair.json
 # enter keyphrase from console
-solana program deploy --buffer buffer-keypair.json --upgrade-authority id.json
+solana program deploy --url https://api.devnet.solana.com --upgrade-authority ~/.config/solana/devnet.json --program-id target/deploy/solana_escrow-keypair.json --buffer buffer.json
 ```
 </details>
 
