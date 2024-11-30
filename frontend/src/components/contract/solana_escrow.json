@@ -1,0 +1,305 @@
+{
+  "address": "3SgbiXdLJ81n1r5HR42fbHGWfQM3Djds6kfyYPeNQUKs",
+  "metadata": {
+    "name": "solana_escrow",
+    "version": "0.1.0",
+    "spec": "0.1.0",
+    "description": "Created with Anchor"
+  },
+  "instructions": [
+    {
+      "name": "accept_service",
+      "discriminator": [
+        254,
+        51,
+        138,
+        57,
+        189,
+        26,
+        24,
+        118
+      ],
+      "accounts": [
+        {
+          "name": "escrow",
+          "writable": true
+        },
+        {
+          "name": "service_provider",
+          "signer": true
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "approve_completion",
+      "discriminator": [
+        191,
+        196,
+        91,
+        103,
+        232,
+        146,
+        6,
+        67
+      ],
+      "accounts": [
+        {
+          "name": "escrow",
+          "writable": true
+        },
+        {
+          "name": "client",
+          "signer": true
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "initialize_escrow",
+      "discriminator": [
+        243,
+        160,
+        77,
+        153,
+        11,
+        92,
+        48,
+        209
+      ],
+      "accounts": [
+        {
+          "name": "escrow",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  115,
+                  111,
+                  108,
+                  97,
+                  110,
+                  97,
+                  116,
+                  101,
+                  115,
+                  116,
+                  101,
+                  115,
+                  99,
+                  114,
+                  111,
+                  119
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "client"
+              }
+            ]
+          }
+        },
+        {
+          "name": "client",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "amount",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "release_fund",
+      "discriminator": [
+        93,
+        20,
+        135,
+        230,
+        79,
+        227,
+        89,
+        113
+      ],
+      "accounts": [
+        {
+          "name": "escrow",
+          "writable": true
+        },
+        {
+          "name": "service_provider",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": []
+    }
+  ],
+  "accounts": [
+    {
+      "name": "EscrowAccount",
+      "discriminator": [
+        36,
+        69,
+        48,
+        18,
+        128,
+        225,
+        125,
+        135
+      ]
+    }
+  ],
+  "events": [
+    {
+      "name": "EscrowCompleted",
+      "discriminator": [
+        229,
+        26,
+        0,
+        202,
+        140,
+        167,
+        106,
+        187
+      ]
+    },
+    {
+      "name": "EscrowInitialized",
+      "discriminator": [
+        222,
+        186,
+        157,
+        47,
+        145,
+        142,
+        176,
+        248
+      ]
+    }
+  ],
+  "errors": [
+    {
+      "code": 6000,
+      "name": "ServiceAlreadyAccepted",
+      "msg": "Service has already been accepted by another provider"
+    },
+    {
+      "code": 6001,
+      "name": "UnauthorizedSigner",
+      "msg": "Unauthorized signer for this operation"
+    },
+    {
+      "code": 6002,
+      "name": "UninitializedEscrow",
+      "msg": "Escrow account has not been initialized correctly"
+    },
+    {
+      "code": 6003,
+      "name": "InsufficientBalance",
+      "msg": "Insufficient balance in client account to initialize escrow"
+    },
+    {
+      "code": 6004,
+      "name": "InvalidAmount",
+      "msg": "Amount must be greater than zero"
+    },
+    {
+      "code": 6005,
+      "name": "NotApprovedForRealease",
+      "msg": "Client must approve Completion to withdraw funds"
+    },
+    {
+      "code": 6006,
+      "name": "EscrowAlreadyCompleted",
+      "msg": "Escrow already completed"
+    }
+  ],
+  "types": [
+    {
+      "name": "EscrowAccount",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "client",
+            "type": "pubkey"
+          },
+          {
+            "name": "service_provider",
+            "type": "pubkey"
+          },
+          {
+            "name": "amount",
+            "type": "u64"
+          },
+          {
+            "name": "client_approved",
+            "type": "bool"
+          },
+          {
+            "name": "is_completed",
+            "type": "bool"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "EscrowCompleted",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "escrow",
+            "type": "pubkey"
+          },
+          {
+            "name": "service_provider",
+            "type": "pubkey"
+          },
+          {
+            "name": "amount",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "EscrowInitialized",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "escrow",
+            "type": "pubkey"
+          },
+          {
+            "name": "client",
+            "type": "pubkey"
+          },
+          {
+            "name": "amount",
+            "type": "u64"
+          }
+        ]
+      }
+    }
+  ]
+}
