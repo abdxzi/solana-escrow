@@ -3,7 +3,7 @@ use anchor_lang::solana_program::program::invoke;
 use anchor_lang::solana_program::system_instruction;
 use std::mem::size_of;
 
-declare_id!("3SgbiXdLJ81n1r5HR42fbHGWfQM3Djds6kfyYPeNQUKs");
+declare_id!("9q4dShPZCBvfMiv3FXugJbwKKUsJS7cTnn2YHgkUUTvC");
 
 pub const ESCROW_SEED: &[u8] = b"solanatestescrow";
 
@@ -168,7 +168,20 @@ pub mod solana_escrow {
 
         Ok(())
     }
+
+    pub fn close_escrow(ctx: Context<CloseEscrow>) -> Result<()> {
+        let escrow = &mut ctx.accounts.escrow;
+        let client = &mut ctx.accounts.client;
+        
+        require!(
+            client.key() == escrow.client,
+            EscrowError::UnauthorizedSigner
+        );
+
+        Ok(())
+    }
 }
+
 
 // Account structures
 #[derive(Accounts)]
@@ -212,6 +225,18 @@ pub struct ReleaseFund<'info> {
     #[account(mut)]
     pub service_provider: Signer<'info>,
     pub system_program: Program<'info, System>,
+}
+
+#[derive(Accounts)]
+pub struct CloseEscrow<'info> {
+    #[account(
+        mut,
+        close = client// Transfers remaining lamports to the creator
+    )]
+    pub escrow: Account<'info, EscrowAccount>,
+
+    #[account(mut)]
+    pub client: Signer<'info>,
 }
 
 // Escrow account data structure

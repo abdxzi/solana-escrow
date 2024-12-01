@@ -120,6 +120,23 @@ describe("solana-escrow", () => {
     assert(escrowAccountData.is_completed, "Escrow should be completed")
   });
 
+  it("Close Escrow", async () => {
+
+    console.log('Client Balance before: ', await getSOLBalance(provider.connection, client.publicKey))
+
+    await program.methods
+      .closeEscrow()
+      .accounts({
+        client: client.publicKey,
+        escrow: escrowAddress
+      })
+      .signers([client])
+      .rpc();
+
+    console.log('Client Balance after: ', await getSOLBalance(provider.connection, client.publicKey))
+
+  });
+
 });
 
 // ----------------------- HELPERS -----------------------
