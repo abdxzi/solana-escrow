@@ -5,7 +5,7 @@
  * IDL can be found at `target/idl/solana_escrow.json`.
  */
 export type SolanaEscrow = {
-  "address": "3SgbiXdLJ81n1r5HR42fbHGWfQM3Djds6kfyYPeNQUKs",
+  "address": "BavkK9zHbyor4hkWNNj14GT3WqxmQw3vKLR9TumKW1wh",
   "metadata": {
     "name": "solanaEscrow",
     "version": "0.1.0",
@@ -56,6 +56,31 @@ export type SolanaEscrow = {
         },
         {
           "name": "client",
+          "signer": true
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "closeEscrow",
+      "discriminator": [
+        139,
+        171,
+        94,
+        146,
+        191,
+        91,
+        144,
+        50
+      ],
+      "accounts": [
+        {
+          "name": "escrow",
+          "writable": true
+        },
+        {
+          "name": "client",
+          "writable": true,
           "signer": true
         }
       ],
@@ -121,6 +146,10 @@ export type SolanaEscrow = {
         {
           "name": "amount",
           "type": "u64"
+        },
+        {
+          "name": "metadata",
+          "type": "string"
         }
       ]
     },
@@ -263,6 +292,10 @@ export type SolanaEscrow = {
           {
             "name": "bump",
             "type": "u8"
+          },
+          {
+            "name": "metadata",
+            "type": "bytes"
           }
         ]
       }

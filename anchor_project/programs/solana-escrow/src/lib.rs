@@ -179,6 +179,11 @@ pub mod solana_escrow {
             EscrowError::UnauthorizedSigner
         );
 
+        require!(
+            escrow.is_completed,
+            EscrowError::EscrowNotCompleted
+        );
+
         Ok(())
     }
 }
@@ -269,6 +274,8 @@ pub enum EscrowError {
     NotApprovedForRealease,
     #[msg("Escrow already completed")]
     EscrowAlreadyCompleted,
+    #[msg("Escrow not completed")]
+    EscrowNotCompleted,
 }
 
 // Events to track important actions

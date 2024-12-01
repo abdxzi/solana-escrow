@@ -11,11 +11,11 @@ export const ContentContainer: React.FC<Props> = ({ children }) => {
   return (
     <div className='drawer'>
       <input id="my-drawer" type="checkbox" className="grow drawer-toggle" />
-      <div className='z-50'>
+      <div className='drawer-content'>
         {children}
       </div>
       {/* SideBar / Drawer */}
-      <div className="drawer-side fixed w-screen h-screen z-50">
+      <div className="drawer-side h-screen">
         <label htmlFor="my-drawer" className="drawer-overlay gap-6"></label>
 
         <ul className="p-4 overflow-y-auto menu w-80 bg-base-100 gap-10 sm:flex items-center">

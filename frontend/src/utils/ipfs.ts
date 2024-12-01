@@ -5,9 +5,9 @@ const pinata = new PinataSDK({
     pinataGateway: process.env.NEXT_PUBLIC_PINATA__GATEWAY_URL!,
 });
 
-const getmetadata = async (cid) => {
+const getMetadataFromIPFS = async (cid) => {
     const data = await pinata.gateways.get(cid);
-    console.log(data)
+    return data;
 }
 
 const uploadJson = async (json: string, filename: string) => {
@@ -18,6 +18,6 @@ const uploadJson = async (json: string, filename: string) => {
 }
 
 export {
-    getmetadata,
+    getMetadataFromIPFS,
     uploadJson
 }
