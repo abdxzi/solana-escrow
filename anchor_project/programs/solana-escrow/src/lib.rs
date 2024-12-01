@@ -13,7 +13,7 @@ pub mod solana_escrow {
     use super::*;
 
     // Initialize the escrow account with a specified amount
-    pub fn initialize_escrow(ctx: Context<InitializeEscrow>, amount: u64) -> Result<()> {
+    pub fn initialize_escrow(ctx: Context<InitializeEscrow>, amount: u64, metadata: [u8; 34]) -> Result<()> {
         let client = &ctx.accounts.client;
         let escrow = &mut ctx.accounts.escrow;
 
@@ -34,6 +34,7 @@ pub mod solana_escrow {
         escrow.amount = amount;
         escrow.client_approved = false;
         escrow.is_completed = false;
+        escrow.metadata = metadata;
 
         // Transfer SOL from client to escrow account using system program
         invoke(
@@ -222,6 +223,7 @@ pub struct EscrowAccount {
     pub client_approved: bool,
     pub is_completed: bool,
     pub bump: u8,
+    pub metadata: [u8; 34],
 }
 
 #[error_code]

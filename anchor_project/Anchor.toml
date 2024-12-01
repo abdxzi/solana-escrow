@@ -14,7 +14,7 @@ solana_escrow = "3SgbiXdLJ81n1r5HR42fbHGWfQM3Djds6kfyYPeNQUKs"
 url = "https://api.apr.dev"
 
 [provider]
-cluster = "https://api.devnet.solana.com"
+cluster = "localnet"
 wallet = "~/.config/solana/devnet.json"
 
 [scripts]
