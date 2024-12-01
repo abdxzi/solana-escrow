@@ -1,3 +1,2 @@
-export { HomeView } from "./home";
-export { BasicsView } from "./basics";
-export { EscrowView } from "./escrow";
+export { CreateView } from "./create-escrow";
+export { EscrowView } from "./home";
