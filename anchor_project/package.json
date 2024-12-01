@@ -6,6 +6,8 @@
   },
   "dependencies": {
     "@coral-xyz/anchor": "^0.30.1",
+    "base32.js": "^0.1.0",
+    "cids": "^1.1.9",
     "pinata": "^1.8.1"
   },
   "devDependencies": {

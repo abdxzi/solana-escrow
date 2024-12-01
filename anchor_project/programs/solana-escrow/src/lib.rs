@@ -3,7 +3,7 @@ use anchor_lang::solana_program::program::invoke;
 use anchor_lang::solana_program::system_instruction;
 use std::mem::size_of;
 
-declare_id!("9q4dShPZCBvfMiv3FXugJbwKKUsJS7cTnn2YHgkUUTvC");
+declare_id!("BavkK9zHbyor4hkWNNj14GT3WqxmQw3vKLR9TumKW1wh");
 
 pub const ESCROW_SEED: &[u8] = b"solanatestescrow";
 
@@ -13,7 +13,7 @@ pub mod solana_escrow {
     use super::*;
 
     // Initialize the escrow account with a specified amount
-    pub fn initialize_escrow(ctx: Context<InitializeEscrow>, amount: u64, metadata: [u8; 34]) -> Result<()> {
+    pub fn initialize_escrow(ctx: Context<InitializeEscrow>, amount: u64, metadata: String) -> Result<()> {
         let client = &ctx.accounts.client;
         let escrow = &mut ctx.accounts.escrow;
 
@@ -27,6 +27,7 @@ pub mod solana_escrow {
 
         let (_pda, bump) =
             Pubkey::find_program_address(&[ESCROW_SEED, client.key().as_ref()], ctx.program_id);
+        // let bump = *ctx.bumps["escrow"];
 
         escrow.bump = bump;
         escrow.client = ctx.accounts.client.key();
@@ -34,7 +35,7 @@ pub mod solana_escrow {
         escrow.amount = amount;
         escrow.client_approved = false;
         escrow.is_completed = false;
-        escrow.metadata = metadata;
+        escrow.metadata = metadata.into_bytes();
 
         // Transfer SOL from client to escrow account using system program
         invoke(
@@ -155,7 +156,7 @@ pub mod solana_escrow {
 
         // Sent lamports except rent fee else it will destroy account
         let lamports = escrow.get_lamports();
-        let rent_exempt_balance = Rent::get()?.minimum_balance(size_of::<EscrowAccount>() + 20);
+        let rent_exempt_balance = Rent::get()?.minimum_balance(escrow.to_account_info().data_len());
         let remaining_lamports = lamports.saturating_sub(rent_exempt_balance);
         if remaining_lamports > 0 {
             ctx.accounts.escrow.sub_lamports(remaining_lamports)?;
@@ -190,8 +191,8 @@ pub struct InitializeEscrow<'info> {
         init,
         payer = client,
         // space = 8 + 32 + 32 + 8 + 1 + 1, 
-        space = size_of::<EscrowAccount>() + 16, // +16 for internal overhead
-        seeds = [b"solanatestescrow", client.key().as_ref()],
+        space = size_of::<EscrowAccount>() + 16 + 100, // +16 for internal overhead
+        seeds = [ESCROW_SEED, client.key().as_ref()],
         bump
     )]
     pub escrow: Account<'info, EscrowAccount>,
@@ -248,8 +249,9 @@ pub struct EscrowAccount {
     pub client_approved: bool,
     pub is_completed: bool,
     pub bump: u8,
-    pub metadata: [u8; 34],
+    pub metadata: Vec<u8>,
 }
+
 
 #[error_code]
 pub enum EscrowError {

@@ -2,8 +2,12 @@ import * as anchor from "@coral-xyz/anchor";
 import { Program } from "@coral-xyz/anchor";
 import * as borsh from "@coral-xyz/borsh";
 import { SolanaEscrow } from "../target/types/solana_escrow";
+import idl from '../target/idl/solana_escrow.json';
 import assert from "assert";
-import * as bs58 from "bs58";
+
+const programId = new anchor.web3.PublicKey(idl.address);
+
+console.log("Program Id:", programId.toString());
 
 describe("solana-escrow", () => {
   const provider = anchor.AnchorProvider.env();
@@ -21,7 +25,6 @@ describe("solana-escrow", () => {
     client = anchor.web3.Keypair.generate();
     serviceProvider = anchor.web3.Keypair.generate();
 
-    const programId = new anchor.web3.PublicKey("3SgbiXdLJ81n1r5HR42fbHGWfQM3Djds6kfyYPeNQUKs");
     [escrowAddress, bump] = await anchor.web3.PublicKey.findProgramAddress(
       [Buffer.from("solanatestescrow"), client.publicKey.toBuffer()],
       programId
@@ -40,28 +43,20 @@ describe("solana-escrow", () => {
 
     const amount = 1 * anchor.web3.LAMPORTS_PER_SOL;
 
-    const cid = "QmWATWCu5JqRQtM9vBYrR6iGg1JHxUWB7XYGFZKnGrFoG4";
+    const cid = "QmTzQ1NkuBH6AqNFvVf64e2z5AV35JTkD7FdyFzFf5sKk1";
 
-    // Decode to bytes
-    const metadataBytes = bs58.decode(cid);
-    // console.log("Decoded bytes:", metadataBytes);
-    // console.log("Byte length:", metadataBytes.length); 
-
-    // const reencodedCID = bs58.encode(metadataBytes);
+    // convertCidv1ToCidv0(cid);
 
     await program.methods
-      .initializeEscrow(new anchor.BN(amount), metadataBytes)
+      .initializeEscrow(new anchor.BN(amount), cid)
       .accounts({
         client: client.publicKey,
       })
       .signers([client])
       .rpc();
 
-    const escrowAccountData = await getEscrowAccountData(provider.connection, escrowAddress);
 
-    console.log(escrowAccountData);
-    const reencodedCID = bs58.encode(escrowAccountData.metadata);
-    console.log("Reencoded CID:", reencodedCID);
+    const escrowAccountData = await getEscrowAccountData(provider.connection, escrowAddress);
 
     assert(escrowAccountData.client.toString() == client.publicKey.toString(), "Escrow `client` is set wrong")
     assert(escrowAccountData.amount.toNumber() == amount, "Escrow `amount` is set wrong")
@@ -153,7 +148,7 @@ const EscrowAccountSchema = borsh.struct([
   borsh.bool('client_approved'),          // Boolean fields
   borsh.bool('is_completed'),
   borsh.u8('bump'),
-  borsh.array(borsh.u8(), 34, 'metadata'),
+  borsh.vec(borsh.u8(), 'metadata')
 ]);
 
 async function getEscrowAccountData(connection: any, escrowAccountPubKey: any) {
