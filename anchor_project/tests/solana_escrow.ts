@@ -109,8 +109,6 @@ describe("solana-escrow", () => {
 
     console.log('Service provider Balance After: ', await getSOLBalance(provider.connection, serviceProvider.publicKey))
 
-    // const escrowAccountInfo = await provider.connection.getAccountInfo(escrowAddress);
-    // const rentExemptBalance = await provider.connection.getMinimumBalanceForRentExemption((escrowAccountInfo as any).space);
     const escrowAccountData = await getEscrowAccountData(provider.connection, escrowAddress);
     assert(escrowAccountData.is_completed, "Escrow should be completed")
   });

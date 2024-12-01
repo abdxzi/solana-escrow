@@ -27,7 +27,6 @@ pub mod solana_escrow {
 
         let (_pda, bump) =
             Pubkey::find_program_address(&[ESCROW_SEED, client.key().as_ref()], ctx.program_id);
-        // let bump = *ctx.bumps["escrow"];
 
         escrow.bump = bump;
         escrow.client = ctx.accounts.client.key();
@@ -37,7 +36,6 @@ pub mod solana_escrow {
         escrow.is_completed = false;
         escrow.metadata = metadata.into_bytes();
 
-        // Transfer SOL from client to escrow account using system program
         invoke(
             &system_instruction::transfer(&client.key(), &escrow.to_account_info().key(), amount),
             &[
@@ -104,55 +102,6 @@ pub mod solana_escrow {
         require!(!escrow.is_completed, EscrowError::EscrowAlreadyCompleted);
 
         escrow.is_completed = true;
-        // let service_provider = ctx.accounts.service_provider.to_account_info();
-
-        // @note - Below two methods of transafer wont work because our ecrow account have data with it.
-
-        // let ix = system_instruction::transfer(
-        //     &escrow.key(),
-        //     &service_provider.key(),
-        //     ctx.accounts.escrow.amount,
-        // );
-
-        // invoke_signed(
-        //     &ix,
-        //     &[
-        //         ctx.accounts.escrow.to_account_info(),
-        //         ctx.accounts.service_provider.to_account_info(),
-        //         ctx.accounts.system_program.to_account_info(),
-        //     ],
-        //     &[&[ESCROW_SEED, ctx.accounts.escrow.client.key().as_ref(), &[ctx.accounts.escrow.bump]]],
-        // )?;
-
-        // let client_key = escrow.client.key();
-        // let signer_seeds: &[&[&[u8]]] =
-        //     &[&[ESCROW_SEED.as_ref(), client_key.as_ref(), &[escrow.bump]]];
-
-        // let cpi_context = CpiContext::new_with_signer(
-        //     ctx.accounts.system_program.to_account_info(),
-        //     Transfer {
-        //         from: escrow.to_account_info(),
-        //         to: service_provider.to_account_info(),
-        //     },
-        //     signer_seeds,
-        // );
-
-        // transfer(cpi_context, escrow.amount)?;
-
-        // let transfer_amount = escrow.amount;
-
-        // @note - Same as below
-
-        // **ctx
-        //     .accounts
-        //     .service_provider
-        //     .to_account_info()
-        //     .try_borrow_mut_lamports()? += transfer_amount;
-        // **ctx
-        //     .accounts
-        //     .escrow
-        //     .to_account_info()
-        //     .try_borrow_mut_lamports()? -= transfer_amount;
 
         // Sent lamports except rent fee else it will destroy account
         let lamports = escrow.get_lamports();
@@ -195,8 +144,7 @@ pub struct InitializeEscrow<'info> {
     #[account(
         init,
         payer = client,
-        // space = 8 + 32 + 32 + 8 + 1 + 1, 
-        space = size_of::<EscrowAccount>() + 16 + 100, // +16 for internal overhead
+        space = size_of::<EscrowAccount>() + 16 + 100, 
         seeds = [ESCROW_SEED, client.key().as_ref()],
         bump
     )]
@@ -224,7 +172,6 @@ pub struct ApproveCompletion<'info> {
 
 #[derive(Accounts)]
 pub struct ReleaseFund<'info> {
-    // #[account(mut, close = service_provider)] // @note - if this on function cal will destroy account and send all sol to service_provider
     #[account(mut)]
     pub escrow: Account<'info, EscrowAccount>,
 
@@ -237,7 +184,7 @@ pub struct ReleaseFund<'info> {
 pub struct CloseEscrow<'info> {
     #[account(
         mut,
-        close = client// Transfers remaining lamports to the creator
+        close = client 
     )]
     pub escrow: Account<'info, EscrowAccount>,
 
